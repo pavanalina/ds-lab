@@ -1,0 +1,1249 @@
+<title>Linked List Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+/* Layout: instrument panel - visualiser above, source listing beside it on wide screens. */
+:root{
+  --paper:#FBFAF6; --panel:#FFFFFF; --ink:#16243D; --ink-soft:#5B6B85;
+  --rule:#DFE3EB; --accent:#1F5FA8; --amber:#B9770E; --teal:#0F6E63; --crimson:#A63333;
+  --node:#E9F0F8; --node-new:#FDF2DC; --node-dead:#F2EFEF; --codebg:#F4F6FA; --codehit:#FFF2CF;
+  --ui:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --paper:#11161F; --panel:#171D28; --ink:#E6EBF3; --ink-soft:#97A4B8;
+  --rule:#2A3443; --accent:#6BA6E8; --amber:#E0A944; --teal:#45BFAE; --crimson:#E08080;
+  --node:#1E2936; --node-new:#2E2718; --node-dead:#1A1D22; --codebg:#141A24; --codehit:#2E2A1A;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#11161F; --panel:#171D28; --ink:#E6EBF3; --ink-soft:#97A4B8;
+  --rule:#2A3443; --accent:#6BA6E8; --amber:#E0A944; --teal:#45BFAE; --crimson:#E08080;
+  --node:#1E2936; --node-new:#2E2718; --node-dead:#1A1D22; --codebg:#141A24; --codehit:#2E2A1A;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:20px 48px}
+
+/* ---------- header ---------- */
+header{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;justify-content:space-between;
+  padding-bottom:14px;border-bottom:2px solid var(--ink)}
+h1{font-size:clamp(23px,4.4vw,34px);font-weight:700;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.sub{font-size:13px;color:var(--ink-soft);margin:3px 0 0}
+.kinds{display:flex;gap:4px;flex-wrap:wrap}
+.kind{font:500 13px/1 var(--ui);padding:9px 14px;border:1px solid var(--rule);background:var(--panel);
+  color:var(--ink-soft);border-radius:3px;cursor:pointer}
+.kind[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.kind:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- main grid ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px;margin-top:20px;
+  align-items:stretch}
+@media (max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.grid>.card{display:flex;flex-direction:column}
+.codewrap{flex:1}
+.opscard{margin-top:18px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:4px;min-width:0}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  padding:11px 14px;border-bottom:1px solid var(--rule)}
+.card-t{font:600 11px/1 var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+
+/* ---------- stage ---------- */
+.stage{overflow-x:auto;overflow-y:hidden;padding:4px 0;flex:1}
+.stage svg{display:block}
+.vars{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-top:1px solid var(--rule)}
+.var{font:500 12px/1 var(--mono);padding:5px 9px;border-radius:3px;border:1px solid var(--rule);
+  background:var(--codebg);color:var(--ink-soft)}
+.var b{font-weight:700;color:var(--ink)}
+.var.on{border-color:currentColor}
+.var.head{color:var(--teal)} .var.cur{color:var(--crimson)}
+.var.prev{color:var(--accent)} .var.nxt{color:var(--amber)} .var.nn{color:var(--amber)}
+
+/* ---------- step bar ---------- */
+.stepbar{padding:12px 14px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:10px}
+.stmt{font:500 13px/1.5 var(--mono);background:var(--codehit);box-shadow:inset 3px 0 0 var(--amber);
+  padding:8px 11px;border-radius:2px;overflow-x:auto;white-space:pre;min-height:34px;color:var(--ink)}
+.stmt:empty{display:none}
+.note{font-size:14px;min-height:42px;line-height:1.55;display:block;padding:3px 0}
+.note b{color:var(--crimson)}
+.transport{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+button{font:500 13px/1 var(--ui);padding:9px 13px;border:1px solid var(--rule);background:var(--panel);
+  color:var(--ink);border-radius:3px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--ink-soft)}
+button:disabled{opacity:.4;cursor:default}
+button.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);min-width:86px}
+.count{font:500 12px/1 var(--mono);color:var(--ink-soft);margin-left:auto;font-variant-numeric:tabular-nums}
+.speed{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-soft)}
+.speed input{width:88px}
+
+/* ---------- operations ---------- */
+.ops{padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+.oprow{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.oprow>span.lbl{font:600 10px/1 var(--ui);letter-spacing:.09em;text-transform:uppercase;
+  color:var(--ink-soft);width:100%}
+input[type=number],input[type=text]{font:500 13px/1 var(--mono);padding:8px 9px;width:74px;
+  border:1px solid var(--rule);border-radius:3px;background:var(--paper);color:var(--ink)}
+.hint{font-size:12px;color:var(--ink-soft)}
+
+/* ---------- code ---------- */
+.fnbar{display:flex;flex-wrap:wrap;gap:5px;padding:10px 14px;border-bottom:1px solid var(--rule)}
+.fn-chip{font:500 11.5px/1 var(--mono);padding:6px 9px;border:1px solid var(--rule);
+  background:var(--paper);color:var(--ink-soft);border-radius:3px;cursor:pointer}
+.fn-chip:hover{border-color:var(--ink-soft);color:var(--ink)}
+.fn-chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.fn-chip.vo{font-style:italic}
+.codewrap{overflow-x:auto;padding:12px 0 14px}
+pre.code{margin:0;font:400 12.5px/1.68 var(--mono);min-width:max-content}
+.cl{display:block;padding:0 14px 0 0;white-space:pre}
+.cl .ln{display:inline-block;width:38px;padding-right:12px;text-align:right;color:var(--ink-soft);
+  opacity:.6;user-select:none;font-variant-numeric:tabular-nums}
+.cl.hit{background:var(--codehit);box-shadow:inset 3px 0 0 var(--amber)}
+.kw{color:var(--accent);font-weight:500} .cm{color:var(--ink-soft);font-style:italic}
+.fn{color:var(--teal);font-weight:500} .nm{color:var(--crimson)}
+
+.legend{display:flex;flex-wrap:wrap;gap:12px;padding:10px 14px;border-top:1px solid var(--rule);
+  font-size:12px;color:var(--ink-soft)}
+.legend i{display:inline-block;width:16px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+footer{margin-top:26px;padding-top:14px;border-top:1px solid var(--rule);
+  font-size:12.5px;color:var(--ink-soft);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Linked List Lab</h1>
+      <p class="sub">Run an operation and watch the pointers change, one C statement at a time.</p>
+    </div>
+    <div class="kinds" role="group" aria-label="List type">
+      <button class="kind" id="k-singly" aria-pressed="true">Singly linked</button>
+      <button class="kind" id="k-doubly" aria-pressed="false">Doubly linked</button>
+      <button class="kind" id="k-circular" aria-pressed="false">Circular</button>
+    </div>
+  </header>
+
+  <div class="grid">
+      <section class="card">
+        <div class="card-h">
+          <span class="card-t" id="stage-title">Singly linked list</span>
+          <span class="card-t" id="opname" style="color:var(--amber);text-transform:none;font-family:var(--mono);letter-spacing:0;font-size:11.5px">idle</span>
+        </div>
+        <div class="stage" id="stage"><svg id="svg" height="250" width="700" role="img"
+             aria-label="Linked list diagram"></svg></div>
+        <div class="vars" id="vars"></div>
+        <div class="stepbar">
+          <div class="stmt" id="stmt"></div>
+          <div class="note" id="note">Pick an operation below. The list starts with three nodes.</div>
+          <div class="transport">
+            <button id="b-back" disabled>&larr; Back</button>
+            <button id="b-play" class="primary" disabled>Play</button>
+            <button id="b-next" disabled>Next &rarr;</button>
+            <span class="speed"><label for="sp">Speed</label>
+              <input type="range" id="sp" min="1" max="5" value="3"></span>
+            <span class="count" id="count">no operation running</span>
+          </div>
+        </div>
+      </section>
+
+    <section class="card">
+      <div class="card-h"><span class="card-t">C source</span>
+        <span class="card-t" id="codetitle" style="color:var(--ink);text-transform:none;font-family:var(--mono);letter-spacing:0">—</span></div>
+      <div class="fnbar" id="fnbar"></div>
+      <div class="codewrap"><pre class="code" id="code"></pre></div>
+    </section>
+  </div>
+
+  <section class="card opscard">
+    <div class="card-h"><span class="card-t">Operations</span>
+      <span class="hint" id="oplen"></span></div>
+    <div class="ops" id="ops"></div>
+    <div class="legend">
+      <span><i style="background:var(--accent)"></i>next link</span>
+      <span><i style="background:var(--crimson)"></i>prev link</span>
+      <span><i style="background:var(--teal)"></i>head</span>
+      <span><i style="background:var(--amber)"></i>new node</span>
+      <span>dimmed = detached from the chain</span>
+    </div>
+  </section>
+
+  <footer>
+    <span>Data Structures (1BCSDS302) &middot; Module III &middot; Dept. of CSE, VVCE Mysuru</span>
+    <span>Prepared by Pavan Kumar S P</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+const SVGNS="http://www.w3.org/2000/svg";
+let UID=1;
+const el=(id)=>document.getElementById(id);
+
+/* ============================ code listings ============================ */
+const C={
+singly:{
+ createNode:["struct node *createNode(int item)","{","    struct node *newNode;",
+   "    newNode = (struct node *)malloc(sizeof(struct node));","    if (newNode == NULL)","    {",
+   "        printf(\"\\n Memory allocation failed\");","        exit(1);","    }",
+   "    newNode->data = item;","    newNode->link = NULL;        /* never leave a stray address */",
+   "    return newNode;","}"],
+ count:["int countNodes(struct node *head)","{","    int count = 0;",
+   "    struct node *cur = head;","    while (cur != NULL)","    {","        count++;",
+   "        cur = cur->link;","    }","    return count;","}"],
+ traverse:["void display(struct node *head)","{","    struct node *cur = head;",
+   "    while (cur != NULL)","    {","        printf(\" %d\", cur->data);",
+   "        cur = cur->link;","    }","}"],
+ insertFront:["struct node *insertFront(struct node *head, int item)","{",
+   "    struct node *newNode = createNode(item);","    newNode->link = head;",
+   "    return newNode;","}"],
+ insertRear:["struct node *insertRear(struct node *head, int item)","{",
+   "    struct node *newNode = createNode(item);","    struct node *cur;",
+   "    if (head == NULL)","        return newNode;","    cur = head;",
+   "    while (cur->link != NULL)","        cur = cur->link;",
+   "    cur->link = newNode;","    return head;","}"],
+ insertAt:["struct node *insertAt(struct node *head, int item, int pos)","{",
+   "    struct node *newNode, *cur;","    int i;","    if (pos == 1)",
+   "        return insertFront(head, item);","    cur = head;",
+   "    for (i = 1; i < pos - 1 && cur != NULL; i++)","        cur = cur->link;",
+   "    if (cur == NULL)","        return head;        /* out of range */",
+   "    newNode = createNode(item);","    newNode->link = cur->link;",
+   "    cur->link = newNode;","    return head;","}"],
+ deleteFront:["struct node *deleteFront(struct node *head)","{","    struct node *temp;",
+   "    if (head == NULL)","        return NULL;","    temp = head;",
+   "    head = head->link;","    free(temp);","    return head;","}"],
+ deleteRear:["struct node *deleteRear(struct node *head)","{",
+   "    struct node *cur, *prev;","    if (head == NULL)","        return NULL;",
+   "    if (head->link == NULL)","    {","        free(head);","        return NULL;","    }",
+   "    prev = NULL;  cur = head;","    while (cur->link != NULL)","    {",
+   "        prev = cur;","        cur  = cur->link;","    }",
+   "    prev->link = NULL;","    free(cur);","    return head;","}"],
+ deleteKey:["struct node *deleteKey(struct node *head, int key)","{",
+   "    struct node *cur, *prev;","    if (head == NULL)","        return NULL;",
+   "    if (head->data == key)","    {","        cur  = head;","        head = head->link;",
+   "        free(cur);","        return head;","    }","    prev = head;  cur = head->link;",
+   "    while (cur != NULL && cur->data != key)","    {","        prev = cur;",
+   "        cur  = cur->link;","    }","    if (cur == NULL)",
+   "        return head;        /* not found */","    prev->link = cur->link;",
+   "    free(cur);","    return head;","}"],
+ search:["int search(struct node *head, int key)","{","    int pos = 1;",
+   "    struct node *cur = head;","    while (cur != NULL)","    {",
+   "        if (cur->data == key)","            return pos;","        cur = cur->link;",
+   "        pos++;","    }","    return -1;","}"],
+ insertWrong:["/* the SAME insertion with the two assignments the wrong way round */",
+   "struct node *insertAtWrong(struct node *head, int item, int pos)","{",
+   "    struct node *newNode, *cur = head;","    int i;",
+   "    for (i = 1; i < pos - 1 && cur != NULL; i++)","        cur = cur->link;",
+   "    newNode = createNode(item);",
+   "    cur->link     = newNode;      /* 1.  WRONG - this is done first */",
+   "    newNode->link = cur->link;    /* 2.  cur->link is now newNode ITSELF */",
+   "    return head;","}"],
+ reverseWrong:["/* the same loop, but the WRONG pointer is returned at the end */",
+   "struct node *reverseWrong(struct node *head)","{",
+   "    struct node *prev = NULL, *cur = head, *next = NULL;",
+   "    while (cur != NULL)","    {","        next = cur->link;","        cur->link = prev;",
+   "        prev = cur;","        cur  = next;","    }",
+   "    return cur;        /* WRONG - cur is NULL by now */","}"],
+ reverse:["struct node *reverse(struct node *head)","{",
+   "    struct node *prev = NULL, *cur = head, *next = NULL;","    while (cur != NULL)","    {",
+   "        next = cur->link;","        cur->link = prev;","        prev = cur;",
+   "        cur  = next;","    }","    return prev;","}"]
+},
+doubly:{
+ createNode:["struct dnode *createDNode(int item)","{","    struct dnode *p;",
+   "    p = (struct dnode *)malloc(sizeof(struct dnode));","    if (p == NULL)","    {",
+   "        printf(\"\\n Memory allocation failed\");","        exit(1);","    }",
+   "    p->data = item;","    p->prev = NULL;","    p->next = NULL;","    return p;","}"],
+ count:["int countNodes(struct dnode *head)","{","    int count = 0;",
+   "    struct dnode *cur = head;","    while (cur != NULL)","    {","        count++;",
+   "        cur = cur->next;","    }","    return count;","}"],
+ traverse:["void displayForward(struct dnode *head)","{","    struct dnode *cur = head;",
+   "    while (cur != NULL)","    {","        printf(\" %d\", cur->data);",
+   "        cur = cur->next;","    }","}"],
+ traverseBack:["void displayBackward(struct dnode *head)","{","    struct dnode *cur = head;",
+   "    if (head == NULL) return;","    while (cur->next != NULL)","        cur = cur->next;",
+   "    while (cur != NULL)","    {","        printf(\" %d\", cur->data);",
+   "        cur = cur->prev;","    }","}"],
+ insertFront:["struct dnode *insertFront(struct dnode *head, int item)","{",
+   "    struct dnode *p = createDNode(item);","    if (head == NULL)","        return p;",
+   "    p->next    = head;","    head->prev = p;","    return p;","}"],
+ insertRear:["struct dnode *insertRear(struct dnode *head, int item)","{",
+   "    struct dnode *p = createDNode(item), *cur;","    if (head == NULL)","        return p;",
+   "    cur = head;","    while (cur->next != NULL)","        cur = cur->next;",
+   "    cur->next = p;","    p->prev   = cur;","    return head;","}"],
+ insertBefore:["struct dnode *insertBefore(struct dnode *head, int key, int item)","{",
+   "    struct dnode *cur = head, *p;","    while (cur != NULL && cur->data != key)",
+   "        cur = cur->next;","    if (cur == NULL)","        return head;        /* not found */",
+   "    if (cur->prev == NULL)","        return insertFront(head, item);",
+   "    p = createDNode(item);","    p->prev = cur->prev;","    p->next = cur;",
+   "    cur->prev->next = p;","    cur->prev = p;","    return head;","}"],
+ deleteKey:["struct dnode *deleteKey(struct dnode *head, int key)","{",
+   "    struct dnode *cur = head;","    while (cur != NULL && cur->data != key)",
+   "        cur = cur->next;","    if (cur == NULL)","        return head;        /* not found */",
+   "    if (cur->prev == NULL)","        head = cur->next;","    else",
+   "        cur->prev->next = cur->next;","    if (cur->next != NULL)",
+   "        cur->next->prev = cur->prev;","    free(cur);","    return head;","}"]
+},
+circular:{
+ createNode:["struct node *createNode(int item)","{","    struct node *newNode;",
+   "    newNode = (struct node *)malloc(sizeof(struct node));","    if (newNode == NULL)","    {",
+   "        printf(\"\\n Memory allocation failed\");","        exit(1);","    }",
+   "    newNode->data = item;","    newNode->link = NULL;","    return newNode;","}"],
+ count:["int countNodes(struct node *head)","{","    int count = 0;",
+   "    struct node *cur = head;","    if (head == NULL)","        return 0;","    do","    {",
+   "        count++;","        cur = cur->link;","    } while (cur != head);",
+   "    return count;","}"],
+ traverse:["void displayC(struct node *head)","{","    struct node *cur = head;",
+   "    if (head == NULL) return;","    do","    {","        printf(\" %d\", cur->data);",
+   "        cur = cur->link;","    } while (cur != head);","}"],
+ insertRear:["struct node *insertRear(struct node *head, int item)","{",
+   "    struct node *p = createNode(item), *last;","    if (head == NULL)","    {",
+   "        p->link = p;        /* points to itself */","        return p;","    }",
+   "    last = head;","    while (last->link != head)","        last = last->link;",
+   "    last->link = p;","    p->link    = head;","    return head;","}"],
+ insertFront:["struct node *insertFront(struct node *head, int item)","{",
+   "    struct node *p = createNode(item), *last;","    if (head == NULL)","    {",
+   "        p->link = p;","        return p;","    }","    last = head;",
+   "    while (last->link != head)","        last = last->link;","    p->link    = head;",
+   "    last->link = p;","    return p;        /* p is the new head */","}"],
+ deleteKey:["struct node *deleteKey(struct node *head, int key)","{",
+   "    struct node *cur, *prev;","    if (head == NULL)","        return NULL;",
+   "    if (head->data == key)","    {","        if (head->link == head)","        {",
+   "            free(head);","            return NULL;","        }","        prev = head;",
+   "        while (prev->link != head)","            prev = prev->link;","        cur  = head;",
+   "        head = head->link;","        prev->link = head;","        free(cur);",
+   "        return head;","    }","    prev = head;  cur = head->link;",
+   "    while (cur != head && cur->data != key)","    {","        prev = cur;",
+   "        cur  = cur->link;","    }","    if (cur == head)",
+   "        return head;        /* not found */","    prev->link = cur->link;",
+   "    free(cur);","    return head;","}"]
+}};
+
+const OPLABEL={createNode:"createNode",count:"countNodes",traverse:"display",traverseBack:"displayBackward",insertFront:"insertFront",
+ insertRear:"insertRear",insertAt:"insertAt",deleteFront:"deleteFront",deleteRear:"deleteRear",
+ deleteKey:"deleteKey",search:"search",reverse:"reverse",insertBefore:"insertBefore"};
+const LABEL=(k)=>{
+  if(k==="createNode") return KIND==="doubly"?"createDNode":"createNode";
+  if(k==="count") return "countNodes";
+  if(k==="traverse") return KIND==="doubly"?"displayForward":KIND==="circular"?"displayC":"display";
+  if(k==="traverseBack") return "displayBackward";
+  return OPLABEL[k]||k;};
+const VIEWONLY=new Set();
+const COMPLEX={createNode:"O(1)",traverse:"O(n)",traverseBack:"O(n)",count:"O(n)",search:"O(n)",
+ insertFront:"O(1)",insertRear:"O(n)",insertAt:"O(n)",deleteFront:"O(1)",deleteRear:"O(n)",
+ deleteKey:"O(n)",insertBefore:"O(n)",reverse:"O(n)",insertWrong:"O(n)",reverseWrong:"O(n)"};
+function costOf(key){
+  if(KIND==="circular"&&key==="insertFront") return "O(n)";
+  return COMPLEX[key]||"";}
+const ARGS={createNode:["val"],search:["key"],insertFront:["val"],insertRear:["val"],
+ insertAt:["val","pos"],deleteKey:["key"],insertBefore:["key","val"],
+ insertWrong:["val","pos"]};
+function argsFor(key){
+  return (ARGS[key]||[]).map(f=>{
+    const i=document.getElementById(`f-${KIND}-${key}-${f}`);
+    return i?(parseInt(i.value,10)||0):0;});
+}
+const FNORDER={
+ singly:["createNode","traverse","count","search","insertFront","insertRear","insertAt",
+         "deleteFront","deleteRear","deleteKey","reverse"],
+ doubly:["createNode","traverse","traverseBack","count","insertFront","insertRear",
+         "insertBefore","deleteKey"],
+ circular:["createNode","traverse","count","insertFront","insertRear","deleteKey"]};
+
+/* ============================ state ============================ */
+let KIND="singly";
+let S=null;            // live list
+let TRACE=[], TI=0, TIMER=null, CURRENT_OP=null, VIEW=null;
+
+function mk(vals){
+  const st={n:{},order:[],head:null,next:{},prev:{}};
+  let last=null;
+  vals.forEach(v=>{
+    const id=UID++;
+    st.n[id]={id,val:v}; st.order.push(id); st.next[id]=null; st.prev[id]=null;
+    if(last===null) st.head=id; else { st.next[last]=id; st.prev[id]=last; }
+    last=id;
+  });
+  if(KIND==="circular"&&last!==null) st.next[last]=st.head;
+  return st;
+}
+const snap=(st)=>JSON.parse(JSON.stringify(st));
+
+function chainOf(st){
+  const out=[];const seen=new Set();let c=st.head;
+  while(c!==null&&c!==undefined&&!seen.has(c)){out.push(c);seen.add(c);c=st.next[c];}
+  return out;
+}
+const valuesOf=(st)=>chainOf(st).map(i=>st.n[i].val);
+
+/* ============================ trace builders ============================ */
+function T(){ const steps=[]; return {
+  steps,
+  add(line,note,st,ptrs,extra){
+    steps.push({line,note,st:snap(st),ptrs:Object.assign({},ptrs),extra:extra||{}});
+  }};}
+
+const B={};
+
+/* ---- singly ---- */
+B.singly={};
+function createNodeTrace(st,v,two){
+  const t=T(); const a=snap(st); const id=UID++;
+  t.add(2,"A pointer is declared. It holds no address yet &mdash; no node exists so far.",a,{head:a.head});
+  const b=snap(a); b.n[id]={id,val:"?"}; b.order.push(id); b.next[id]=null; b.prev[id]=null;
+  t.add(3,"malloc asks the heap for a block exactly the size of one node. The block holds garbage.",
+    b,{head:b.head,newNode:id},{nw:id});
+  t.add(4,"The returned pointer must always be checked. If the heap is full, malloc returns NULL.",
+    b,{head:b.head,newNode:id},{nw:id});
+  const c=snap(b); c.n[id].val=v;
+  t.add(9,`The data field is set to <b>${v}</b>.`,c,{head:c.head,newNode:id},{nw:id});
+  if(two){
+    t.add(10,"The prev link is set to NULL.",c,{head:c.head,newNode:id},{nw:id});
+    t.add(11,"And the next link is set to NULL, so the node never carries a stray address.",
+      c,{head:c.head,newNode:id},{nw:id});
+    t.add(12,"The address is returned. The node now exists on the heap but belongs to no list yet &mdash; an insert function is what joins it in.",
+      c,{head:c.head,newNode:id},{nw:id,done:1});
+  }else{
+    t.add(10,"The link is set to NULL, so the node never carries a stray address.",
+      c,{head:c.head,newNode:id},{nw:id});
+    t.add(11,"The address is returned. The node now exists on the heap but belongs to no list yet &mdash; an insert function is what joins it in.",
+      c,{head:c.head,newNode:id},{nw:id,done:1});
+  }
+  return t.steps;}
+
+B.singly.traverse=(st)=>{const t=T();const p={head:st.head};
+  t.add(2,"A separate pointer <b>cur</b> is set to head. head itself is never moved.",st,{...p,cur:st.head});
+  const ch=chainOf(st);
+  ch.forEach((id,i)=>{
+    t.add(3,`cur is not NULL, so the loop body runs.`,st,{...p,cur:id},{hl:id});
+    t.add(5,`Visit <b>${st.n[id].val}</b>.`,st,{...p,cur:id},{hl:id,out:ch.slice(0,i+1).map(x=>st.n[x].val)});
+    t.add(6,"cur moves on to the next node.",st,{...p,cur:ch[i+1]??null},
+      {out:ch.slice(0,i+1).map(x=>st.n[x].val)});
+  });
+  t.add(3,"cur is NULL, so the loop stops. Every node was visited exactly once.",st,{...p,cur:null},
+    {out:ch.map(x=>st.n[x].val),done:1});
+  return t.steps;};
+
+B.singly.insertFront=(st,v)=>{const t=T();const a=snap(st);
+  const id=UID++; a.n[id]={id,val:v}; a.order.unshift(id); a.next[id]=null;
+  t.add(2,`A new node holding <b>${v}</b> is created. Its link is NULL and it is not yet in the list.`,
+    a,{head:a.head,newNode:id},{nw:id});
+  const b=snap(a); b.next[id]=b.head;
+  t.add(3,"<b>Step 1</b> &mdash; the new node is joined to the rest of the list first.",
+    b,{head:b.head,newNode:id},{nw:id});
+  const c=snap(b); c.head=id;
+  t.add(4,"<b>Step 2</b> &mdash; head is moved to the new node. This is O(1): nothing was walked.",
+    c,{head:id},{done:1});
+  return t.steps;};
+
+B.singly.insertRear=(st,v)=>{const t=T();const a=snap(st);
+  const id=UID++; a.n[id]={id,val:v}; a.order.push(id); a.next[id]=null;
+  t.add(2,`A new node holding <b>${v}</b> is created.`,a,{head:a.head,newNode:id},{nw:id});
+  if(a.head===null){ t.add(4,"The list is empty, so the new node becomes the whole list.",a,{head:a.head,newNode:id},{nw:id});
+    const z=snap(a); z.head=id;
+    t.add(5,"head now points at it.",z,{head:id},{done:1}); return t.steps; }
+  t.add(4,"The list is not empty, so the last node must be found.",a,{head:a.head,newNode:id},{nw:id});
+  t.add(6,"cur starts at head.",a,{head:a.head,cur:a.head,newNode:id},{nw:id});
+  const ch=chainOf(a).filter(x=>x!==id);
+  ch.forEach((cid,i)=>{
+    const isLast=i===ch.length-1;
+    t.add(7,isLast?"cur->link is NULL &mdash; this is the last node, so the walk stops."
+                  :"cur->link is not NULL, so the walk continues.",
+      a,{head:a.head,cur:cid,newNode:id},{nw:id,hl:cid});
+    if(!isLast) t.add(8,"cur moves on.",a,{head:a.head,cur:ch[i+1],newNode:id},{nw:id});
+  });
+  const last=ch[ch.length-1];
+  const b=snap(a); b.next[last]=id;
+  t.add(9,"The last node's link, which held NULL, now points at the new node.",
+    b,{head:b.head,cur:last},{done:1});
+  return t.steps;};
+
+B.singly.insertAt=(st,v,pos)=>{
+  if(pos<=1) return B.singly.insertFront(st,v);
+  const t=T();const a=snap(st);
+  t.add(4,`Position ${pos} is not 1, so the node before it must be found.`,a,{head:a.head});
+  t.add(6,"cur starts at head.",a,{head:a.head,cur:a.head});
+  const ch=chainOf(a); let cur=a.head;
+  for(let i=1;i<pos-1&&cur!==null;i++){
+    cur=a.next[cur];
+    t.add(8,`cur moves forward. It must stop one node BEFORE position ${pos}.`,a,{head:a.head,cur});
+  }
+  if(cur===null){ t.add(10,`There is no node at position ${pos-1}. The position is out of range.`,
+      a,{head:a.head,cur:null},{fail:1}); return t.steps; }
+  t.add(9,`cur is now at position ${pos-1}, the node before the insertion point.`,a,{head:a.head,cur},{hl:cur});
+  const id=UID++; const b=snap(a);
+  b.n[id]={id,val:v}; b.order.splice(b.order.indexOf(cur)+1,0,id); b.next[id]=null;
+  t.add(12,`A new node holding <b>${v}</b> is created.`,b,{head:b.head,cur,newNode:id},{nw:id});
+  const c=snap(b); c.next[id]=c.next[cur];
+  t.add(13,"<b>Step 1</b> &mdash; the new node is joined to the REST of the list first.",
+    c,{head:c.head,cur,newNode:id},{nw:id});
+  const d=snap(c); d.next[cur]=id;
+  t.add(14,"<b>Step 2</b> &mdash; only now is cur joined to the new node. Reversing these two loses the rest of the list.",
+    d,{head:d.head,cur},{done:1});
+  return t.steps;};
+
+B.singly.deleteFront=(st)=>{const t=T();const a=snap(st);
+  if(a.head===null){t.add(4,"The list is empty. There is nothing to delete.",a,{head:null},{fail:1});return t.steps;}
+  t.add(6,"The address of the first node is saved in temp. Without this copy it could never be freed.",
+    a,{head:a.head,temp:a.head},{hl:a.head});
+  const b=snap(a); b.head=b.next[a.head];
+  t.add(7,"head moves to the second node. The first is now out of the chain.",
+    b,{head:b.head,temp:a.head},{det:[a.head]});
+  const c=snap(b); delete c.n[a.head]; c.order=c.order.filter(x=>x!==a.head);
+  t.add(8,`Only now is the memory returned. The value <b>${a.n[a.head].val}</b> has been deleted.`,
+    c,{head:c.head},{done:1});
+  return t.steps;};
+
+B.singly.deleteRear=(st)=>{const t=T();const a=snap(st);
+  if(a.head===null){t.add(4,"The list is empty.",a,{head:null},{fail:1});return t.steps;}
+  const ch=chainOf(a);
+  if(ch.length===1){
+    t.add(5,"Only one node is present, so it is a special case.",a,{head:a.head},{hl:a.head});
+    const z=snap(a); delete z.n[a.head]; z.order=[]; z.head=null;
+    t.add(7,"It is freed and the list becomes empty.",z,{head:null},{done:1}); return t.steps;}
+  t.add(10,"Two pointers are needed. A singly linked list cannot be walked backwards.",
+    a,{head:a.head,prev:null,cur:a.head});
+  for(let i=0;i<ch.length-1;i++){
+    t.add(11,i===ch.length-2?"cur->link is NULL &mdash; cur is the last node."
+                            :"cur->link is not NULL, so the walk goes on.",
+      a,{head:a.head,prev:i===0?null:ch[i-1],cur:ch[i]},{hl:ch[i]});
+    t.add(13,"prev remembers where cur was, then cur moves on.",
+      a,{head:a.head,prev:ch[i],cur:ch[i+1]});
+  }
+  const last=ch[ch.length-1], prev=ch[ch.length-2];
+  const b=snap(a); b.next[prev]=null;
+  t.add(16,"The new last node's link is set to NULL.",b,{head:b.head,prev,cur:last},{det:[last]});
+  const c=snap(b); delete c.n[last]; c.order=c.order.filter(x=>x!==last);
+  t.add(17,`The old last node is freed. <b>${a.n[last].val}</b> has been deleted.`,c,{head:c.head},{done:1});
+  return t.steps;};
+
+B.singly.deleteKey=(st,key)=>{const t=T();const a=snap(st);
+  if(a.head===null){t.add(4,"The list is empty.",a,{head:null},{fail:1});return t.steps;}
+  if(a.n[a.head].val===key){
+    t.add(5,`The first node holds ${key}, which is a special case because head itself must change.`,
+      a,{head:a.head},{hl:a.head});
+    const b=snap(a); b.head=b.next[a.head];
+    t.add(8,"head moves to the second node.",b,{head:b.head,cur:a.head},{det:[a.head]});
+    const c=snap(b); delete c.n[a.head]; c.order=c.order.filter(x=>x!==a.head);
+    t.add(9,`The node is freed. <b>${key}</b> has been deleted.`,c,{head:c.head},{done:1});
+    return t.steps;}
+  t.add(12,"prev starts at head and cur at the second node.",a,{head:a.head,prev:a.head,cur:a.next[a.head]});
+  const ch=chainOf(a); let i=1;
+  while(i<ch.length&&a.n[ch[i]].val!==key){
+    t.add(13,`${a.n[ch[i]].val} is not ${key}, so the walk continues.`,
+      a,{head:a.head,prev:ch[i-1],cur:ch[i]},{hl:ch[i]});
+    t.add(15,"prev and cur both move forward.",a,{head:a.head,prev:ch[i],cur:ch[i+1]??null});
+    i++;}
+  if(i>=ch.length){
+    t.add(18,`<b>${key}</b> is not present in the list. Nothing is changed.`,
+      a,{head:a.head,prev:ch[ch.length-1],cur:null},{fail:1}); return t.steps;}
+  const cur=ch[i], prev=ch[i-1];
+  t.add(13,`cur holds ${key}. The walk stops.`,a,{head:a.head,prev,cur},{hl:cur});
+  const b=snap(a); b.next[prev]=b.next[cur];
+  t.add(20,"prev is joined directly to the node after cur, bypassing it.",b,{head:b.head,prev,cur},{det:[cur]});
+  const c=snap(b); delete c.n[cur]; c.order=c.order.filter(x=>x!==cur);
+  t.add(21,`Only now is the memory freed. <b>${key}</b> has been deleted.`,c,{head:c.head},{done:1});
+  return t.steps;};
+
+B.singly.createNode=(st,v)=>createNodeTrace(st,v,false);
+B.singly.count=(st)=>{const t=T();const ch=chainOf(st);
+  t.add(3,"count starts at 0 and cur at head.",st,{head:st.head,cur:st.head},{cnt:0});
+  ch.forEach((id,i)=>{
+    t.add(4,"cur is not NULL, so there is a node to count.",st,{head:st.head,cur:id},{hl:id,cnt:i});
+    t.add(6,`count becomes ${i+1}.`,st,{head:st.head,cur:id},{hl:id,cnt:i+1});
+    t.add(7,"cur moves on.",st,{head:st.head,cur:ch[i+1]??null},{cnt:i+1});
+  });
+  t.add(9,`cur is NULL, so the walk ends. The list holds <b>${ch.length}</b> nodes. A linked list does not know its own length &mdash; counting is O(n).`,
+    st,{head:st.head,cur:null},{cnt:ch.length,done:1});
+  return t.steps;};
+
+B.singly.insertWrong=(st,v,pos)=>{const t=T();const a=snap(st);
+  const ch=chainOf(a); const idx=Math.max(0,Math.min(ch.length-1,(pos||2)-2));
+  const cur=ch[idx];
+  if(cur===undefined){t.add(6,"The list is too short for that position.",a,{head:a.head},{fail:1});return t.steps;}
+  t.add(6,`cur is walked to position ${idx+1}, the node before the insertion point.`,
+    a,{head:a.head,cur},{hl:cur});
+  const id=UID++; const b=snap(a);
+  b.n[id]={id,val:v}; b.order.splice(b.order.indexOf(cur)+1,0,id); b.next[id]=null;
+  t.add(7,`A new node holding <b>${v}</b> is created.`,b,{head:b.head,cur,newNode:id},{nw:id});
+  const rest=b.next[cur];
+  const c=snap(b); c.next[cur]=id;
+  const lost=[]; let w=rest; const seen=new Set();
+  while(w!==null&&w!==undefined&&!seen.has(w)){lost.push(w);seen.add(w);w=c.next[w];}
+  t.add(8,"<b>The mistake.</b> cur->link is overwritten first. The address of the rest of the list was held ONLY here &mdash; it is now gone.",
+    c,{head:c.head,cur,newNode:id},{nw:id,det:lost});
+  const d=snap(c); d.next[id]=d.next[cur];
+  t.add(9,"Now newNode->link = cur->link reads back <b>newNode itself</b>, so the node points at itself.",
+    d,{head:d.head,cur,newNode:id},{nw:id,det:lost});
+  const e=snap(d);
+  lost.forEach(x=>{delete e.n[x]; e.order=e.order.filter(y=>y!==x);});
+  t.add(10,`The list is broken: a node pointing at itself, and ${lost.length} node(s) unreachable and unfreeable &mdash; a memory leak. Run <b>insertAt()</b> to see the correct order.`,
+    e,{head:e.head},{fail:1,selfloop:id});
+  return t.steps;};
+
+B.singly.reverseWrong=(st)=>{const t=T();let a=snap(st);const ch=chainOf(a);
+  if(!ch.length){t.add(4,"The list is empty.",a,{head:null},{fail:1});return t.steps;}
+  t.add(3,"prev starts as NULL and cur at the first node.",a,{head:a.head,prev:null,cur:a.head});
+  for(let i=0;i<ch.length;i++){
+    const cur=ch[i], nxt=ch[i+1]??null, prv=i===0?null:ch[i-1];
+    const b=snap(a); b.next[cur]=prv; if(i===0) b.head=cur;
+    t.add(7,`Link ${i+1} of ${ch.length} is turned round. The loop itself is perfectly correct.`,
+      b,{head:b.head,prev:prv,cur,next:nxt},{hl:cur,rev:1});
+    a=b;}
+  const good=snap(a); good.head=ch[ch.length-1];
+  t.add(4,"cur is NULL, so the loop ends. The list IS reversed and prev holds its first node.",
+    good,{head:good.head,prev:good.head,cur:null},{rev:1});
+  const bad=snap(good); bad.head=null;
+  t.add(11,"<b>The mistake.</b> cur is returned instead of prev. cur is NULL, so the caller is handed an <b>empty list</b> &mdash; every node is now unreachable.",
+    bad,{head:null,prev:good.head,cur:null},{fail:1,rev:1});
+  return t.steps;};
+
+B.singly.search=(st,key)=>{const t=T();const a=snap(st);const ch=chainOf(a);
+  t.add(3,"cur starts at head and pos counts from 1.",a,{head:a.head,cur:a.head},{pos:1});
+  for(let i=0;i<ch.length;i++){
+    t.add(6,`Is ${a.n[ch[i]].val} equal to ${key}?`,a,{head:a.head,cur:ch[i]},{hl:ch[i],pos:i+1});
+    if(a.n[ch[i]].val===key){
+      t.add(7,`Yes. <b>${key}</b> is at position <b>${i+1}</b>.`,a,{head:a.head,cur:ch[i]},
+        {hl:ch[i],pos:i+1,done:1});
+      return t.steps;}
+    t.add(8,"No. cur moves on and pos is increased.",a,{head:a.head,cur:ch[i+1]??null},{pos:i+2});
+  }
+  t.add(11,`cur is NULL and <b>${key}</b> was never found, so -1 is returned.`,
+    a,{head:a.head,cur:null},{fail:1});
+  return t.steps;};
+
+B.singly.reverse=(st)=>{const t=T();let a=snap(st);const ch=chainOf(a);
+  if(ch.length===0){t.add(3,"The list is empty.",a,{head:null},{fail:1});return t.steps;}
+  t.add(2,"prev starts as NULL and cur starts at the first node.",a,{head:a.head,prev:null,cur:a.head});
+  for(let i=0;i<ch.length;i++){
+    const cur=ch[i], nxt=ch[i+1]??null, prv=i===0?null:ch[i-1];
+    t.add(3,"cur is not NULL, so the loop body runs.",a,{head:a.head,prev:prv,cur},{hl:cur});
+    t.add(5,"<b>next</b> is saved FIRST. Turning the link round would otherwise destroy it.",
+      a,{head:a.head,prev:prv,cur,next:nxt},{hl:cur});
+    const b=snap(a); b.next[cur]=prv; if(i===0) b.head=cur;
+    t.add(6,"Only now is cur's link turned round to point backwards.",
+      b,{head:b.head,prev:prv,cur,next:nxt},{hl:cur,rev:1});
+    a=b;
+    t.add(7,"prev and cur both move forward by one node.",a,{head:a.head,prev:cur,cur:nxt,next:nxt},{rev:1});
+  }
+  const fin=snap(a); fin.head=ch[ch.length-1];
+  t.add(10,"cur is NULL so the loop stops. <b>prev</b> holds the new first node &mdash; return prev, not cur.",
+    fin,{head:fin.head,prev:fin.head,cur:null},{done:1,rev:1});
+  return t.steps;};
+
+/* ---- doubly ---- */
+B.doubly={};
+B.doubly.traverse=B.singly.traverse;
+B.doubly.traverseBack=(st)=>{const t=T();const ch=chainOf(st);
+  t.add(2,"cur starts at head.",st,{head:st.head,cur:st.head});
+  if(ch.length===0){t.add(3,"The list is empty.",st,{head:null},{fail:1});return t.steps;}
+  ch.forEach((id,i)=>{ if(i<ch.length-1)
+    t.add(5,"First walk forward to the LAST node.",st,{head:st.head,cur:ch[i+1]},{hl:ch[i+1]});});
+  const rev=[...ch].reverse();
+  rev.forEach((id,i)=>{
+    t.add(8,`Visit <b>${st.n[id].val}</b>.`,st,{head:st.head,cur:id},
+      {hl:id,out:rev.slice(0,i+1).map(x=>st.n[x].val)});
+    t.add(9,"cur moves BACKWARD using the prev link. A singly linked list cannot do this.",
+      st,{head:st.head,cur:rev[i+1]??null},{out:rev.slice(0,i+1).map(x=>st.n[x].val)});
+  });
+  t.add(7,"cur is NULL. The list has been read from the last node to the first.",
+    st,{head:st.head,cur:null},{out:rev.map(x=>st.n[x].val),done:1});
+  return t.steps;};
+
+B.doubly.createNode=(st,v)=>createNodeTrace(st,v,true);
+B.doubly.count=B.singly.count;
+
+B.doubly.insertFront=(st,v)=>{const t=T();const a=snap(st);
+  const id=UID++; a.n[id]={id,val:v}; a.order.unshift(id); a.next[id]=null; a.prev[id]=null;
+  t.add(2,`A new node holding <b>${v}</b> is created, with both of its links NULL.`,
+    a,{head:a.head,newNode:id},{nw:id});
+  if(a.head===null){const z=snap(a);z.head=id;
+    t.add(4,"The list was empty, so the new node becomes the whole list.",z,{head:id},{done:1});return t.steps;}
+  const b=snap(a); b.next[id]=b.head;
+  t.add(5,"The new node is made to look FORWARD at the old first node.",b,{head:b.head,newNode:id},{nw:id});
+  const c=snap(b); c.prev[b.head]=id;
+  t.add(6,"The old first node is made to look BACK at the new node. Forgetting this link is the usual mistake.",
+    c,{head:c.head,newNode:id},{nw:id});
+  const d=snap(c); d.head=id;
+  t.add(7,"head moves to the new node. Two links were set, not one.",d,{head:id},{done:1});
+  return t.steps;};
+
+B.doubly.insertRear=(st,v)=>{const t=T();const a=snap(st);
+  const id=UID++; a.n[id]={id,val:v}; a.order.push(id); a.next[id]=null; a.prev[id]=null;
+  t.add(2,`A new node holding <b>${v}</b> is created.`,a,{head:a.head,newNode:id},{nw:id});
+  if(a.head===null){const z=snap(a);z.head=id;
+    t.add(4,"The list was empty.",z,{head:id},{done:1});return t.steps;}
+  const ch=chainOf(a).filter(x=>x!==id);
+  t.add(5,"cur starts at head.",a,{head:a.head,cur:a.head,newNode:id},{nw:id});
+  ch.forEach((cid,i)=>{ if(i<ch.length-1)
+    t.add(7,"cur moves forward to find the last node.",a,{head:a.head,cur:ch[i+1],newNode:id},{nw:id});});
+  const last=ch[ch.length-1];
+  const b=snap(a); b.next[last]=id;
+  t.add(8,"The last node is made to look forward at the new node.",b,{head:b.head,cur:last,newNode:id},{nw:id});
+  const c=snap(b); c.prev[id]=last;
+  t.add(9,"And the new node is made to look back at it.",c,{head:c.head,cur:last},{done:1});
+  return t.steps;};
+
+B.doubly.insertBefore=(st,key,v)=>{const t=T();const a=snap(st);const ch=chainOf(a);
+  let i=0;
+  t.add(3,`The node holding ${key} must be found first.`,a,{head:a.head,cur:a.head});
+  while(i<ch.length&&a.n[ch[i]].val!==key){
+    t.add(4,`${a.n[ch[i]].val} is not ${key}, so cur moves on.`,a,{head:a.head,cur:ch[i+1]??null},{hl:ch[i]});
+    i++;}
+  if(i>=ch.length){t.add(6,`<b>${key}</b> is not in the list.`,a,{head:a.head,cur:null},{fail:1});return t.steps;}
+  const cur=ch[i];
+  t.add(3,`cur holds ${key}.`,a,{head:a.head,cur},{hl:cur});
+  if(i===0){ t.add(8,"The key is in the FIRST node, so there is no left neighbour. This becomes an insert at the front.",
+      a,{head:a.head,cur},{hl:cur});
+    return t.steps.concat(B.doubly.insertFront(st,v)); }
+  const left=ch[i-1];
+  const id=UID++; const b=snap(a);
+  b.n[id]={id,val:v}; b.order.splice(b.order.indexOf(cur),0,id); b.next[id]=null; b.prev[id]=null;
+  t.add(10,`A new node holding <b>${v}</b> is created. Four links must now change.`,
+    b,{head:b.head,cur,newNode:id},{nw:id});
+  const c=snap(b); c.prev[id]=left;
+  t.add(11,"<b>1</b> &mdash; the new node looks back at the left neighbour.",c,{head:c.head,cur,newNode:id},{nw:id});
+  const d=snap(c); d.next[id]=cur;
+  t.add(12,"<b>2</b> &mdash; the new node looks forward at the key node.",d,{head:d.head,cur,newNode:id},{nw:id});
+  const e=snap(d); e.next[left]=id;
+  t.add(13,"<b>3</b> &mdash; the left neighbour looks forward at the new node.",e,{head:e.head,cur,newNode:id},{nw:id});
+  const f=snap(e); f.prev[cur]=id;
+  t.add(14,"<b>4</b> &mdash; and the key node looks back at it. Steps 3 and 4 must come after 1 and 2.",
+    f,{head:f.head,cur},{done:1});
+  return t.steps;};
+
+B.doubly.deleteKey=(st,key)=>{const t=T();const a=snap(st);const ch=chainOf(a);
+  let i=0;
+  t.add(3,`The node holding ${key} must be found.`,a,{head:a.head,cur:a.head});
+  while(i<ch.length&&a.n[ch[i]].val!==key){
+    t.add(4,`${a.n[ch[i]].val} is not ${key}.`,a,{head:a.head,cur:ch[i+1]??null},{hl:ch[i]});
+    i++;}
+  if(i>=ch.length){t.add(6,`<b>${key}</b> is not in the list.`,a,{head:a.head,cur:null},{fail:1});return t.steps;}
+  const cur=ch[i];
+  t.add(3,`cur holds ${key}.`,a,{head:a.head,cur},{hl:cur});
+  let b=snap(a);
+  if(i===0){ b.head=b.next[cur];
+    t.add(8,"cur->prev is NULL, so cur is the first node and head itself must move.",b,{head:b.head,cur},{det:[cur]});
+  } else { b.next[ch[i-1]]=b.next[cur];
+    t.add(10,"The left neighbour is joined forward past cur.",b,{head:b.head,cur},{det:[cur]}); }
+  const c=snap(b);
+  if(i<ch.length-1){ c.prev[ch[i+1]]=i===0?null:ch[i-1];
+    t.add(12,"And the right neighbour is joined back past cur. Both tests are what handle the two ends.",
+      c,{head:c.head,cur},{det:[cur]});
+  } else { t.add(11,"cur->next is NULL, so cur was the last node and there is nothing to join back.",
+      c,{head:c.head,cur},{det:[cur]}); }
+  const d=snap(c); delete d.n[cur]; d.order=d.order.filter(x=>x!==cur);
+  t.add(13,`The node is freed. <b>${key}</b> has been deleted.`,d,{head:d.head},{done:1});
+  return t.steps;};
+
+/* ---- circular ---- */
+B.circular={};
+B.circular.traverse=(st)=>{const t=T();const ch=chainOf(st);
+  if(ch.length===0){t.add(3,"The list is empty.",st,{head:null},{fail:1});return t.steps;}
+  t.add(2,"cur starts at head.",st,{head:st.head,cur:st.head});
+  ch.forEach((id,i)=>{
+    t.add(6,`Visit <b>${st.n[id].val}</b>.`,st,{head:st.head,cur:id},
+      {hl:id,out:ch.slice(0,i+1).map(x=>st.n[x].val)});
+    t.add(7,"cur moves on.",st,{head:st.head,cur:ch[(i+1)%ch.length]},
+      {out:ch.slice(0,i+1).map(x=>st.n[x].val)});
+    t.add(8,i===ch.length-1?"cur is back at head, so the walk stops."
+                           :"cur is not back at head yet, so the loop repeats.",
+      st,{head:st.head,cur:ch[(i+1)%ch.length]},{out:ch.slice(0,i+1).map(x=>st.n[x].val),
+        done:i===ch.length-1?1:0});
+  });
+  return t.steps;};
+
+B.circular.createNode=(st,v)=>createNodeTrace(st,v,false);
+B.circular.count=(st)=>{const t=T();const ch=chainOf(st);
+  if(ch.length===0){t.add(4,"head is NULL, so the list is empty and 0 is returned.",st,{head:null},{cnt:0,fail:1});return t.steps;}
+  t.add(3,"count starts at 0 and cur at head.",st,{head:st.head,cur:st.head},{cnt:0});
+  ch.forEach((id,i)=>{
+    t.add(8,`count becomes ${i+1}.`,st,{head:st.head,cur:id},{hl:id,cnt:i+1});
+    t.add(9,"cur moves on.",st,{head:st.head,cur:ch[(i+1)%ch.length]},{cnt:i+1});
+    t.add(10,i===ch.length-1?"cur is back at head, so the walk stops."
+                            :"cur is not back at head, so the loop repeats.",
+      st,{head:st.head,cur:ch[(i+1)%ch.length]},{cnt:i+1});
+  });
+  t.add(11,`The ring holds <b>${ch.length}</b> nodes. Note the test is cur != head, not cur != NULL &mdash; there is no NULL here.`,
+    st,{head:st.head,cur:st.head},{cnt:ch.length,done:1});
+  return t.steps;};
+
+B.circular.insertRear=(st,v)=>{const t=T();const a=snap(st);
+  const id=UID++; a.n[id]={id,val:v}; a.order.push(id); a.next[id]=null;
+  t.add(2,`A new node holding <b>${v}</b> is created.`,a,{head:a.head,newNode:id},{nw:id});
+  if(a.head===null){const z=snap(a); z.head=id; z.next[id]=id;
+    t.add(5,"The list was empty, so the node is made to point at ITSELF.",z,{head:id},{done:1});
+    return t.steps;}
+  const ch=chainOf(a).filter(x=>x!==id);
+  t.add(8,"last starts at head and must walk to the node whose link is head.",
+    a,{head:a.head,last:a.head,newNode:id},{nw:id});
+  ch.forEach((cid,i)=>{
+    t.add(9,i===ch.length-1?"last->link IS head &mdash; this is the last node."
+                           :"last->link is not head, so the walk goes on.",
+      a,{head:a.head,last:cid,newNode:id},{nw:id,hl:cid});
+    if(i<ch.length-1) t.add(10,"last moves on.",a,{head:a.head,last:ch[i+1],newNode:id},{nw:id});
+  });
+  const last=ch[ch.length-1];
+  const b=snap(a); b.next[last]=id;
+  t.add(11,"The last node now points at the new node.",b,{head:b.head,last,newNode:id},{nw:id});
+  const c=snap(b); c.next[id]=c.head;
+  t.add(12,"And the new node points back at head, closing the ring. There is no NULL anywhere.",
+    c,{head:c.head},{done:1});
+  return t.steps;};
+
+B.circular.insertFront=(st,v)=>{const t=T();const a=snap(st);
+  const id=UID++; a.n[id]={id,val:v}; a.order.unshift(id); a.next[id]=null;
+  t.add(2,`A new node holding <b>${v}</b> is created.`,a,{head:a.head,newNode:id},{nw:id});
+  if(a.head===null){const z=snap(a); z.head=id; z.next[id]=id;
+    t.add(5,"The list was empty, so the node points at itself.",z,{head:id},{done:1});return t.steps;}
+  const ch=chainOf(a).filter(x=>x!==id);
+  t.add(8,"Even to insert at the FRONT, the last node must be found.",a,{head:a.head,last:a.head,newNode:id},{nw:id});
+  ch.forEach((cid,i)=>{ if(i<ch.length-1)
+    t.add(10,"last moves on.",a,{head:a.head,last:ch[i+1],newNode:id},{nw:id});});
+  const last=ch[ch.length-1];
+  const b=snap(a); b.next[id]=b.head;
+  t.add(11,"The new node points at the old first node.",b,{head:b.head,last,newNode:id},{nw:id});
+  const c=snap(b); c.next[last]=id;
+  t.add(12,"The last node points at the new node.",c,{head:c.head,last,newNode:id},{nw:id});
+  const d=snap(c); d.head=id;
+  t.add(13,"head moves. This walk is why insertion at the front is O(n) here, not O(1).",d,{head:id},{done:1});
+  return t.steps;};
+
+B.circular.deleteKey=(st,key)=>{const t=T();const a=snap(st);const ch=chainOf(a);
+  if(a.head===null){t.add(4,"The list is empty.",a,{head:null},{fail:1});return t.steps;}
+  if(a.n[a.head].val===key){
+    t.add(5,`head holds ${key}, which is the special case.`,a,{head:a.head},{hl:a.head});
+    if(ch.length===1){const z=snap(a); delete z.n[a.head]; z.order=[]; z.head=null;
+      t.add(9,"It was the only node, so the list becomes empty.",z,{head:null},{done:1});return t.steps;}
+    const last=ch[ch.length-1];
+    t.add(13,"The last node must be found, because its link points at head.",a,{head:a.head,prev:last},{hl:last});
+    const b=snap(a); b.head=b.next[a.head];
+    t.add(16,"head moves to the second node.",b,{head:b.head,cur:a.head},{det:[a.head]});
+    const c=snap(b); c.next[last]=c.head;
+    t.add(17,"The last node is made to point at the new head, keeping the ring closed.",
+      c,{head:c.head,cur:a.head,prev:last},{det:[a.head]});
+    const d=snap(c); delete d.n[a.head]; d.order=d.order.filter(x=>x!==a.head);
+    t.add(18,`The old head is freed. <b>${key}</b> has been deleted.`,d,{head:d.head},{done:1});
+    return t.steps;}
+  t.add(21,"prev starts at head and cur at the second node.",a,{head:a.head,prev:a.head,cur:a.next[a.head]});
+  let i=1;
+  while(i<ch.length&&a.n[ch[i]].val!==key){
+    t.add(22,`${a.n[ch[i]].val} is not ${key}. Note the test is cur != head, not cur != NULL.`,
+      a,{head:a.head,prev:ch[i-1],cur:ch[i]},{hl:ch[i]});
+    t.add(24,"prev and cur move on.",a,{head:a.head,prev:ch[i],cur:ch[(i+1)%ch.length]});
+    i++;}
+  if(i>=ch.length){t.add(27,`cur is back at head, so <b>${key}</b> is not present.`,
+      a,{head:a.head,cur:a.head},{fail:1});return t.steps;}
+  const cur=ch[i], prev=ch[i-1];
+  t.add(22,`cur holds ${key}.`,a,{head:a.head,prev,cur},{hl:cur});
+  const b=snap(a); b.next[prev]=b.next[cur];
+  t.add(29,"prev is joined past cur.",b,{head:b.head,prev,cur},{det:[cur]});
+  const c=snap(b); delete c.n[cur]; c.order=c.order.filter(x=>x!==cur);
+  t.add(30,`The node is freed. <b>${key}</b> has been deleted.`,c,{head:c.head},{done:1});
+  return t.steps;};
+
+/* ============================ rendering ============================ */
+const NH=54,ROW1=66,ROW2=184;
+const THREEK=()=>KIND==="doubly";
+const NWv=()=>THREEK()?168:118;
+const GAPXv=()=>THREEK()?40:44;
+const PADLv=()=>48;
+const THREE=THREEK;
+const wPrev=()=>THREE()?NWv()*0.33:0;
+const wData=()=>THREE()?NWv()*0.34:NWv()*0.42;
+const wNext=()=>THREE()?NWv()*0.33:NWv()*0.58;
+const nextCx=(p)=>p.x+wPrev()+wData()+wNext()/2;
+const prevCx=(p)=>p.x+wPrev()/2;
+/* a stable, scattered-looking heap address for each node */
+const ADDR={};
+function addrOf(id){
+  if(!ADDR[id]) ADDR[id]="0x"+(0x5A00+id*0x2C+(id%7)*0x18).toString(16).toUpperCase();
+  return ADDR[id];
+}
+
+function layout(st,extra){
+  const ch=chainOf(st); const pos={}; const seen=new Set(ch);
+  ch.forEach((id,i)=>{pos[id]={x:PADLv()+i*(NWv()+GAPXv()),y:ROW1};});
+  let k=0;
+  st.order.forEach(id=>{
+    if(!st.n[id]||seen.has(id))return;
+    let bx=PADLv()+k*(NWv()+GAPXv());
+    if(extra&&extra.nw===id){
+      const anchor=ch.length?Math.max(0,Math.min(ch.length-1,Math.floor(ch.length/2))):0;
+      bx=PADLv()+anchor*(NWv()+GAPXv())+30;
+    }
+    pos[id]={x:bx,y:ROW2}; k++;
+  });
+  return pos;
+}
+
+function svgEl(n,a){const e=document.createElementNS(SVGNS,n);
+  for(const k in a) e.setAttribute(k,a[k]); return e;}
+
+function draw(step){
+  const svg=el("svg"); svg.textContent="";
+  const st=step.st, ptrs=step.ptrs, ex=step.extra||{};
+  const pos=layout(st,ex);
+  const ids=Object.keys(st.n).map(Number).filter(i=>pos[i]);
+  const maxX=ids.length?Math.max(...ids.map(i=>pos[i].x))+NWv()+86:560;
+  const anyRow2=ids.some(i=>pos[i].y===ROW2);
+  const hgt=anyRow2?ROW2+NH+54:ROW1+NH+86;
+  svg.setAttribute("width",Math.max(maxX,620));
+  svg.setAttribute("height",hgt);
+
+  const defs=svgEl("defs");
+  [["ah","var(--accent)"],["ah2","var(--crimson)"],["ah3","var(--teal)"],["ah4","var(--amber)"]]
+   .forEach(([id,c])=>{
+    const m=svgEl("marker",{id,viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"6",
+      markerHeight:"6",orient:"auto-start-reverse"});
+    m.appendChild(svgEl("path",{d:"M0,0 L10,5 L0,10 z",fill:c}));
+    defs.appendChild(m);});
+  svg.appendChild(defs);
+
+  const g=(x1,y1,x2,y2,col,mk,dash,curve)=>{
+    const p=svgEl("path",{d:curve||`M${x1},${y1} L${x2},${y2}`,fill:"none",stroke:col,
+      "stroke-width":"2","marker-end":`url(#${mk})`});
+    if(dash)p.setAttribute("stroke-dasharray","6 4");
+    svg.appendChild(p);};
+
+  // links
+  ids.forEach(id=>{
+    const nx=st.next[id];
+    const p=pos[id]; const dim=(ex.det||[]).includes(id)?0.3:1;
+    const sx=nextCx(p), sy=p.y+NH/2;
+    if(nx===null||nx===undefined) return;
+    if(!pos[nx])return;
+    const q=pos[nx];
+    const col=(ex.rev&&q.x<p.x)?"var(--crimson)":"var(--accent)";
+    const mk=(ex.rev&&q.x<p.x)?"ah2":"ah";
+    if(q.y===p.y&&q.x>p.x){
+      g(sx,sy,q.x-4,sy,col,mk,0,null);
+    } else if(q.y===p.y&&q.x<p.x){
+      const my=p.y+NH+16;
+      g(sx,p.y+NH,q.x+NWv()/2,q.y+NH,col,mk,0,
+        `M${sx},${p.y+NH} C${sx},${my+14} ${q.x+NWv()/2},${my+14} ${q.x+NWv()/2},${q.y+NH+4}`);
+    } else if(nx===id){
+      const cx=p.x+NWv()/2;
+      g(sx,p.y,cx,p.y-4,"var(--crimson)","ah2",0,
+        `M${sx},${p.y} C${sx+16},${p.y-40} ${cx-26},${p.y-40} ${cx-6},${p.y-4}`);
+    } else {
+      g(sx,sy,q.x+NWv()/2,q.y-6,col,mk,0,
+        `M${sx},${sy} C${sx+30},${sy} ${q.x+NWv()/2},${q.y-50} ${q.x+NWv()/2},${q.y-6}`);
+    }
+  });
+  // doubly prev links
+  if(KIND==="doubly"){
+    ids.forEach(id=>{
+      const pv=st.prev[id]; if(pv===null||pv===undefined||!pos[pv])return;
+      const p=pos[id],q=pos[pv];
+      const ax=prevCx(p), bx=nextCx(q);
+      if(q.y===p.y&&q.x<p.x){
+        const my=p.y+NH+15;
+        g(ax,p.y+NH,bx,q.y+NH,"var(--crimson)","ah2",0,
+          `M${ax},${p.y+NH} C${ax},${my} ${bx},${my} ${bx},${q.y+NH+3}`);
+      } else {
+        g(ax,p.y,bx,q.y+NH,"var(--crimson)","ah2",0,
+          `M${ax},${p.y} C${ax-20},${p.y-40} ${bx},${q.y+NH+40} ${bx},${q.y+NH+3}`);
+      }
+    });
+  }
+
+  // nodes
+  ids.forEach(id=>{
+    const p=pos[id], n=st.n[id];
+    const isNew=ex.nw===id, isDet=(ex.det||[]).includes(id), isHl=ex.hl===id;
+    const op=isDet?0.34:1;
+    const fill=isDet?"var(--node-dead)":(isNew?"var(--node-new)":"var(--node)");
+    const stroke=isHl?"var(--amber)":"var(--ink)";
+    const sw=isHl?3:1.8;
+    const parts = THREE()
+      ? [[0,wPrev(),"var(--panel)"],[wPrev(),wData(),fill],[wPrev()+wData(),wNext(),"var(--panel)"]]
+      : [[0,wData(),fill],[wData(),wNext(),"var(--panel)"]];
+    parts.forEach(([ox,w,f])=>svg.appendChild(svgEl("rect",
+      {x:p.x+ox,y:p.y,width:w,height:NH,fill:f,stroke,"stroke-width":sw,rx:"2",opacity:op})));
+    const t=svgEl("text",{x:p.x+wPrev()+wData()/2,y:p.y+NH/2+7,"text-anchor":"middle",
+      fill:"var(--ink)","font-family":"var(--mono)","font-weight":"700",
+      "font-size":"18",opacity:op});
+    t.textContent=n.val; svg.appendChild(t);
+
+    // what the link fields actually hold
+    const slot=(cx,target)=>{
+      const tx=svgEl("text",{x:cx,y:p.y+NH/2+4,"text-anchor":"middle",
+        fill:target?"var(--accent)":"var(--crimson)","font-family":"var(--mono)",
+        "font-size":"10.5","font-weight":"500",opacity:op});
+      tx.textContent=target?addrOf(target):"NULL"; svg.appendChild(tx);};
+    const nx=st.next[id];
+    slot(nextCx(p), (nx===null||nx===undefined)?null:nx);
+    if(THREE()){
+      const pv=st.prev[id];
+      slot(prevCx(p), (pv===null||pv===undefined)?null:pv);
+      [["prev",prevCx(p)],["next",nextCx(p)]].forEach(([lab,cx])=>{
+        const lt=svgEl("text",{x:cx,y:p.y-7,"text-anchor":"middle",fill:"var(--ink-soft)",
+          "font-family":"var(--mono)","font-size":"9",opacity:op*0.85});
+        lt.textContent=lab; svg.appendChild(lt);});
+    }
+    // the node's own address
+    const ad=svgEl("text",{x:p.x+wPrev()+wData()/2,y:p.y+NH+13,"text-anchor":"middle",
+      fill:"var(--ink-soft)","font-family":"var(--mono)","font-size":"10",opacity:op*0.9});
+    ad.textContent=addrOf(id); svg.appendChild(ad);
+  });
+
+  // pointers
+  const lanes={head:["var(--teal)",-1],newNode:["var(--amber)",-1],
+    cur:["var(--crimson)",1],prev:["var(--accent)",1],last:["var(--accent)",1],
+    temp:["var(--ink-soft)",1],next:["var(--amber)",-1]};
+  const usedBelow={};
+  Object.keys(lanes).forEach(k=>{
+    const id=ptrs[k]; if(id===null||id===undefined||!pos[id])return;
+    const [col,dir]=lanes[k]; const p=pos[id];
+    const cx=p.x+NWv()/2;
+    if(dir<0){
+      const y0=p.y-34, y1=p.y-8;
+      g(cx,y0,cx,y1,col,col==="var(--teal)"?"ah3":"ah4",0,null);
+      const t=svgEl("text",{x:cx,y:y0-7,"text-anchor":"middle",fill:col,
+        "font-family":"var(--mono)","font-size":"13","font-weight":"700"});
+      t.textContent=k==="newNode"?"newNode":k; svg.appendChild(t);
+    } else {
+      const lvl=(usedBelow[id]=(usedBelow[id]||0)+1);
+      const off=(lvl-1)*22;
+      const y0=p.y+NH+34+off, y1=p.y+NH+8+off;
+      g(cx,y0,cx,y1,col,col==="var(--crimson)"?"ah2":"ah",0,null);
+      const t=svgEl("text",{x:cx,y:y0+15,"text-anchor":"middle",fill:col,
+        "font-family":"var(--mono)","font-size":"13","font-weight":"700"});
+      t.textContent=k; svg.appendChild(t);
+    }
+  });
+
+  // head label when the list is empty
+  if(st.head===null){
+    const t=svgEl("text",{x:PADLv(),y:ROW1+NH/2+6,fill:"var(--teal)",
+      "font-family":"var(--mono)","font-size":"14","font-weight":"700"});
+    t.textContent="head = NULL   (the list is empty)"; svg.appendChild(t);
+  }
+  // visited output
+  if(ex.out&&ex.out.length){
+    const t=svgEl("text",{x:PADLv(),y:hgt-14,fill:"var(--teal)",
+      "font-family":"var(--mono)","font-size":"14","font-weight":"700"});
+    t.textContent="output:  "+ex.out.join("  "); svg.appendChild(t);
+  }
+  renderVars(ptrs,st,ex);
+}
+
+function renderVars(ptrs,st,ex){
+  const box=el("vars"); box.textContent="";
+  const add=(k,txt,cls)=>{const d=document.createElement("span");
+    d.className="var "+(cls||""); d.innerHTML=`<b>${k}</b> = ${txt}`; box.appendChild(d);};
+  const nm=(id)=>(id===null||id===undefined)?"NULL"
+      :(st.n[id]?`${addrOf(id)} <span style="opacity:.62">(${st.n[id].val})</span>`:"freed");
+  add("head",nm(ptrs.head),"head on");
+  ["cur","prev","next","last","temp","newNode"].forEach(k=>{
+    if(k in ptrs) add(k,nm(ptrs[k]),k==="cur"?"cur on":k==="prev"?"prev on":
+      k==="next"?"nxt on":k==="newNode"?"nn on":"");});
+  if(ex.pos!==undefined) add("pos",ex.pos,"");
+  if(ex.cnt!==undefined) add("count",ex.cnt,"");
+  const d=document.createElement("span"); d.className="var";
+  d.innerHTML=`<b>list</b> = ${valuesOf(st).join(" → ")||"empty"}`; box.appendChild(d);
+}
+
+function buildFnBar(){
+  const bar=el("fnbar"); bar.textContent="";
+  FNORDER[KIND].forEach(k=>{
+    if(!C[KIND][k])return;
+    const b=document.createElement("button");
+    b.className="fn-chip"+(VIEWONLY.has(k)?" vo":"");
+    b.type="button"; b.textContent=LABEL(k)+"()";
+    b.setAttribute("aria-pressed",String(VIEW===k));
+    b.title="Run "+LABEL(k)+"()";
+    b.addEventListener("click",()=>{ run(k,...argsFor(k)); });
+    bar.appendChild(b);
+  });
+}
+
+function renderCode(opkey,line){
+  VIEW=opkey;
+  const lines=C[KIND][opkey]||[];
+  el("codetitle").textContent=LABEL(opkey)+"()";
+  buildFnBar();
+  const pre=el("code"); pre.textContent="";
+  lines.forEach((L,i)=>{
+    const d=document.createElement("span");
+    d.className="cl"+(i===line?" hit":"");
+    const esc=L.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    const col=esc
+      .replace(/(\/\*[^*]*\*\/)/g,'<span class="cm">$1</span>')
+      .replace(/\b(struct|int|void|while|for|if|else|return|do|NULL|free|printf)\b/g,'<span class="kw">$1</span>');
+    d.innerHTML=`<span class="ln">${i+1}</span>${col}`;
+    pre.appendChild(d);
+  });
+  const hit=pre.querySelector(".hit");
+  if(hit) hit.scrollIntoView({block:"nearest"});
+}
+
+/* ============================ driving ============================ */
+function show(i){
+  TI=Math.max(0,Math.min(TRACE.length-1,i));
+  const s=TRACE[TI];
+  draw(s); renderCode(CURRENT_OP,s.line);
+  const srcLines=C[KIND][CURRENT_OP]||[];
+  el("stmt").textContent=(srcLines[s.line]||"").trim();
+  el("note").innerHTML=s.note;
+  el("count").textContent=`step ${TI+1} of ${TRACE.length}`;
+  el("b-back").disabled=TI===0;
+  el("b-next").disabled=TI===TRACE.length-1;
+  if(TI===TRACE.length-1){ stop();
+    if(CURRENT_OP!=="createNode"){ S=snap(TRACE[TRACE.length-1].st); }
+    el("b-play").textContent="Replay"; }
+}
+function stop(){ if(TIMER){clearInterval(TIMER);TIMER=null;} el("b-play").textContent=
+  TI===TRACE.length-1?"Replay":"Play"; }
+function play(){
+  if(TIMER){stop();return;}
+  if(TI===TRACE.length-1) show(0);
+  const sp=[0,1500,1050,760,520,330][+el("sp").value];
+  el("b-play").textContent="Pause";
+  TIMER=setInterval(()=>{ if(TI>=TRACE.length-1){stop();return;} show(TI+1); },sp);
+}
+function run(opkey,...args){
+  stop();
+  CURRENT_OP=opkey;
+  TRACE=B[KIND][opkey](S,...args);
+  if(!TRACE.length)return;
+  const visited=new Set();
+  TRACE.forEach(x=>["cur","last","prev"].forEach(k=>{
+    if(x.ptrs[k]!==null&&x.ptrs[k]!==undefined) visited.add(x.ptrs[k]);}));
+  el("opname").innerHTML=`${LABEL(opkey)}() &nbsp;·&nbsp; ${costOf(opkey)}`+
+    (visited.size?` &nbsp;·&nbsp; walked ${visited.size} node${visited.size>1?"s":""}`:"");
+  el("b-play").disabled=false; el("b-play").textContent="Play";
+  show(0);
+}
+
+/* ============================ operations UI ============================ */
+const OPS={
+ singly:[
+  ["Helper",[["createNode","Create one node holding",["val"]]]],
+  ["Read",[["traverse","Traverse the whole list",[]],["count","Count the nodes",[]],
+           ["search","Search for",["key"]]]],
+  ["Insert",[["insertFront","At the front",["val"]],["insertRear","At the rear",["val"]],
+             ["insertAt","At position",["val","pos"]]]],
+  ["Delete",[["deleteFront","From the front",[]],["deleteRear","From the rear",[]],
+             ["deleteKey","The node holding",["key"]]]],
+  ["Rearrange",[["reverse","Reverse the list",[]]]],
+  ["Common mistakes — see what breaks",[["insertWrong","Insert with the two lines swapped",["val","pos"]],
+           ["reverseWrong","Reverse but return cur",[]]]]],
+ doubly:[
+  ["Helper",[["createNode","Create one node holding",["val"]]]],
+  ["Read",[["traverse","Forward",[]],["traverseBack","Backward",[]],
+           ["count","Count the nodes",[]]]],
+  ["Insert",[["insertFront","At the front",["val"]],["insertRear","At the rear",["val"]],
+             ["insertBefore","To the left of",["key","val"]]]],
+  ["Delete",[["deleteKey","The node holding",["key"]]]]],
+ circular:[
+  ["Helper",[["createNode","Create one node holding",["val"]]]],
+  ["Read",[["traverse","Go once round the ring",[]],["count","Count the nodes",[]]]],
+  ["Insert",[["insertFront","At the front",["val"]],["insertRear","At the rear",["val"]]]],
+  ["Delete",[["deleteKey","The node holding",["key"]]]]]
+};
+
+function buildOps(){
+  const box=el("ops"); box.textContent="";
+  OPS[KIND].forEach(([group,items])=>{
+    const row=document.createElement("div"); row.className="oprow";
+    const lbl=document.createElement("span"); lbl.className="lbl"; lbl.textContent=group;
+    row.appendChild(lbl);
+    items.forEach(([key,label,fields])=>{
+      const b=document.createElement("button");
+      b.textContent=label; b.type="button";
+      const inputs=[];
+      fields.forEach(f=>{
+        const inp=document.createElement("input");
+        inp.type="number"; inp.id=`f-${KIND}-${key}-${f}`;
+        inp.value= f==="pos"?"2":String(Math.floor(Math.random()*8)*5+15);
+        inp.setAttribute("aria-label",f==="val"?"value":f==="key"?"key":"position");
+        inputs.push([f,inp]);
+      });
+      b.addEventListener("click",()=>{ run(key,...argsFor(key)); });
+      row.appendChild(b);
+      inputs.forEach(([f,i])=>row.appendChild(i));
+    });
+    box.appendChild(row);
+  });
+  const row=document.createElement("div"); row.className="oprow";
+  const lbl=document.createElement("span"); lbl.className="lbl"; lbl.textContent="List";
+  row.appendChild(lbl);
+  const ti=document.createElement("input");
+  ti.type="text"; ti.id="customlist"; ti.value="10, 20, 30";
+  ti.style.width="150px"; ti.setAttribute("aria-label","comma separated values");
+  const bb=document.createElement("button"); bb.textContent="Build this list";
+  bb.addEventListener("click",()=>{
+    const vals=ti.value.split(/[\s,]+/).filter(Boolean)
+      .map(x=>parseInt(x,10)).filter(x=>!Number.isNaN(x)).slice(0,8);
+    stop(); S=mk(vals); TRACE=[]; CURRENT_OP=defaultOp();
+    el("b-play").disabled=true; el("b-back").disabled=true; el("b-next").disabled=true;
+    el("count").textContent="no operation running"; el("stmt").textContent="";
+    el("opname").textContent="idle";
+    el("note").innerHTML= vals.length
+      ? `Built a list of ${vals.length} node${vals.length>1?"s":""}. Up to 8 values; anything that is not a number is ignored.`
+      : "Nothing readable in that box, so the list is empty.";
+    draw({st:S,ptrs:{head:S.head},extra:{}}); renderCode(CURRENT_OP,-1);});
+  row.appendChild(ti); row.appendChild(bb);
+  const r=document.createElement("button"); r.textContent="Reset to 10, 20, 30";
+  r.addEventListener("click",()=>{reset();});
+  const c=document.createElement("button"); c.textContent="Empty the list";
+  c.addEventListener("click",()=>{S=mk([]);stop();TRACE=[];CURRENT_OP=null;
+    el("b-play").disabled=true;el("count").textContent="no operation running";
+    el("stmt").textContent="";
+    el("note").textContent="The list is now empty. Try an insert, or a delete to see the empty case.";
+    el("opname").textContent="idle";
+    draw({st:S,ptrs:{head:S.head},extra:{}}); renderCode(defaultOp(),-1);});
+  row.appendChild(r); row.appendChild(c);
+  box.appendChild(row);
+  el("oplen").textContent=KIND==="circular"
+    ? "The ring has no NULL — every walk stops by returning to head."
+    : KIND==="doubly" ? "Every node holds two links." : "Each node holds one link.";
+}
+
+const defaultOp=()=>KIND==="circular"?"traverse":"traverse";
+
+function reset(){
+  stop(); S=mk([10,20,30]); TRACE=[]; CURRENT_OP=defaultOp();
+  el("b-play").disabled=true; el("b-back").disabled=true; el("b-next").disabled=true;
+  el("count").textContent="no operation running";
+  el("opname").textContent="idle";
+  el("stmt").textContent="";
+  el("note").innerHTML="Pick an operation below. Each one runs as a sequence of C statements you can step through.";
+  draw({st:S,ptrs:{head:S.head},extra:{}});
+  renderCode(CURRENT_OP,-1);
+}
+
+function setKind(k){
+  KIND=k;
+  ["singly","doubly","circular"].forEach(x=>
+    el("k-"+x).setAttribute("aria-pressed",String(x===k)));
+  el("stage-title").textContent=
+    k==="singly"?"Singly linked list":k==="doubly"?"Doubly linked list":"Circular linked list";
+  buildOps(); reset();
+}
+
+el("b-next").addEventListener("click",()=>{stop();show(TI+1);});
+el("b-back").addEventListener("click",()=>{stop();show(TI-1);});
+el("b-play").addEventListener("click",play);
+el("sp").addEventListener("input",()=>{ if(TIMER){stop();play();} });
+["singly","doubly","circular"].forEach(k=>
+  el("k-"+k).addEventListener("click",()=>setKind(k)));
+document.addEventListener("keydown",e=>{
+  if(e.target.tagName==="INPUT")return;
+  if(e.key==="ArrowRight"&&!el("b-next").disabled){stop();show(TI+1);}
+  if(e.key==="ArrowLeft"&&!el("b-back").disabled){stop();show(TI-1);}
+  if(e.key===" "&&!el("b-play").disabled){e.preventDefault();play();}
+});
+
+setKind("singly");
+</script>
